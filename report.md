@@ -337,7 +337,7 @@ return x;
 
 ---
 
-## 四、对助教的建议
+## 四、建议
 
 1. 环境配置里的 32 位库。文档的命令装的是系统自带 gcc 对应的 32 位支持。我的默认编译器是 gcc 14，装完 `gcc-multilib` 后 `make all` 仍然报 `cannot find -lgcc`，要再装 `gcc-14-multilib` 才行。建议在“编译提示缺少 32 位库”一条里补充：gcc 不是系统自带的版本时，要安装对应版本的 multilib 包。
 2. 本地和线上的编译参数不同。Makefile 默认带 `-m32`，GitHub 上的自动评分不带。建议在文档里说明这一点：装不上 32 位库的同学可以用 `make all CFLAGS='-O -Wall -fwrapv'`，这样编译方式和线上一致。
