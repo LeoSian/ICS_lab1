@@ -146,7 +146,8 @@ NOTES:
  *   Rating: 1
  */
 int signMask(void) {
-  return 1;
+  /* shift a single 1 into the most significant bit */
+  return 1 << 31;
 }
 
 // P2
@@ -158,7 +159,8 @@ int signMask(void) {
  *   Rating: 2
  */
 int bitXor(int x, int y) {
-	return 2;
+  /* x ^ y = (x | y) & ~(x & y), and x | y = ~(~x & ~y) by De Morgan */
+  return ~(~x & ~y) & ~(x & y);
 }
 
 // P3
@@ -170,7 +172,9 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  return 3;
+  /* x >> 31 is all 1s for a negative x and 0 otherwise: keep -x or drop it */
+  int isNegative = x >> 31;
+  return (~x + 1) & isNegative;
 }
 
 
@@ -185,7 +189,12 @@ int negativePart(int x){
  *   Rating: 4
  */
 int copyByteWithin(int x, int src, int dst) {
-  return 4;
+  /* take byte src out, clear byte dst, then put the byte there */
+  int srcShift = src << 3;
+  int dstShift = dst << 3;
+  int byte = (x >> srcShift) & 0xFF;
+  int dstMask = 0xFF << dstShift;
+  return (x & ~dstMask) | (byte << dstShift);
 }
 
 // P5
@@ -198,7 +207,9 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  return 5;
+  /* arithmetic shift, then clear the top n bits that were filled with the sign */
+  int topBits = ((1 << 31) >> n) << 1;
+  return (x >> n) & ~topBits;
 }
 
 // P6
@@ -210,7 +221,10 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int swapNibblePairs(int x) {
-  return 6;
+  /* 0x0F0F0F0F selects the low nibble of every byte */
+  int lowNibbles = 0x0F | (0x0F << 8);
+  lowNibbles = lowNibbles | (lowNibbles << 16);
+  return ((x & lowNibbles) << 4) | ((x >> 4) & lowNibbles);
 }
 
 // P7
