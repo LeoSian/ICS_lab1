@@ -290,7 +290,11 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-  return 10;
+  /* add (half - 1) plus the low bit of the quotient, then drop the low n bits */
+  int half = (1 << n) >> 1;
+  int quotientIsOdd = (x >> n) & 1;
+  int biased = x + half + ~0 + quotientIsOdd;
+  return (biased >> n) << n;
 }
 
 // P11
@@ -306,7 +310,11 @@ int roundEvenPow2(int x, int n) {
  *   Rating: 5
  */
 int midpointTowardFirst(int x, int y) {
-  return 11;
+  /* x + y = 2 * (x & y) + (x ^ y), so the floor of the midpoint needs no wide sum */
+  int diffBits = x ^ y;
+  int floorMid = (x & y) + (diffBits >> 1);
+  int xIsAbove = (floorMid + ~x + 1) >> 31;
+  return floorMid + (diffBits & xIsAbove & 1);
 }
 
 
@@ -320,7 +328,15 @@ int midpointTowardFirst(int x, int y) {
  *   Rating: 7
  */
 int isBetweenEitherOrder(int x, int a, int b) {
-  return 12;
+  /* x is inside when it is below exactly one endpoint, or equal to an endpoint */
+  int xorA = x ^ a;
+  int xorB = x ^ b;
+  int diffA = x + ~a + 1;
+  int diffB = x + ~b + 1;
+  int lessA = diffA ^ (xorA & (diffA ^ x));
+  int lessB = diffB ^ (xorB & (diffB ^ x));
+  int belowOne = ((lessA ^ lessB) >> 31) & 1;
+  return belowOne | !xorA | !xorB;
 }
 
 // P13
@@ -333,7 +349,12 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  return 13;
+  /* overflow shows up as a sign change in 2x, 4x or 5x */
+  int times4 = x << 2;
+  int times5 = times4 + x;
+  int overflow = ((x ^ (x << 1)) | (x ^ times4) | (x ^ times5)) >> 31;
+  int limit = (x >> 31) ^ ~(1 << 31);
+  return (overflow & limit) | (~overflow & times5);
 }
 
 // P14
@@ -346,7 +367,14 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  return 14;
+  /* each addition overflows upward (+1), downward (-1) or not at all (0) */
+  int sumXY = x + y;
+  int upXY = ((~x & ~y & sumXY) >> 31) & 1;
+  int downXY = (x & y & ~sumXY) >> 31;
+  int sum = sumXY + z;
+  int upZ = ((~sumXY & ~z & sum) >> 31) & 1;
+  int downZ = (sumXY & z & ~sum) >> 31;
+  return upXY + downXY + upZ + downZ;
 }
 
 // P15
