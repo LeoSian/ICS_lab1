@@ -237,7 +237,9 @@ int swapNibblePairs(int x) {
  *   Rating: 4
  */
 int secondLowestZeroBit(int x) {
-  return 7;
+  /* x | (x + 1) fills the lowest 0 bit; the lowest 0 bit left is the answer */
+  int filled = x | (x + 1);
+  return ~filled & (filled + 1);
 }
 
 // P8
@@ -250,7 +252,13 @@ int secondLowestZeroBit(int x) {
  *   Rating: 5
  */
 int oddParity(int x) {
-  return 8;
+  /* fold with XOR until bit 0 is the XOR of all 32 bits */
+  x = x ^ (x >> 16);
+  x = x ^ (x >> 8);
+  x = x ^ (x >> 4);
+  x = x ^ (x >> 2);
+  x = x ^ (x >> 1);
+  return ~x & 1;
 }
 
 // P9
@@ -263,7 +271,11 @@ int oddParity(int x) {
  *   Rating: 5
  */
 int rotateRightBits(int x, int n) {
-  return 9;
+  /* logical right shift, joined with the bits that fell off moved to the top */
+  int right = n & 31;
+  int left = (~right + 1) & 31;
+  int topBits = ((1 << 31) >> right) << 1;
+  return ((x >> right) & ~topBits) | (x << left);
 }
 
 // P10
@@ -395,7 +407,19 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  return 18;
+  /* add neighbouring fields in parallel: 1-bit, 2-bit, 4-bit, then bytes */
+  int mask1 = 0x55 | (0x55 << 8);
+  int mask2 = 0x33 | (0x33 << 8);
+  int mask4 = 0x0F | (0x0F << 8);
+  mask1 = mask1 | (mask1 << 16);
+  mask2 = mask2 | (mask2 << 16);
+  mask4 = mask4 | (mask4 << 16);
+  x = (x & mask1) + ((x >> 1) & mask1);
+  x = (x & mask2) + ((x >> 2) & mask2);
+  x = (x + (x >> 4)) & mask4;
+  x = x + (x >> 8);
+  x = x + (x >> 16);
+  return x & 0x3F;
 }
 
 // P19
@@ -409,5 +433,16 @@ int bitCount(int x) {
  */
 int bitReverse(int x)
 {
-  return 19;
+  /* swap halves, then bytes, nibbles, bit pairs and single bits */
+  int mask16 = 0xFF | (0xFF << 8);
+  int mask8 = mask16 ^ (mask16 << 8);
+  int mask4 = mask8 ^ (mask8 << 4);
+  int mask2 = mask4 ^ (mask4 << 2);
+  int mask1 = mask2 ^ (mask2 << 1);
+  x = (x << 16) | ((x >> 16) & mask16);
+  x = ((x & mask8) << 8) | ((x >> 8) & mask8);
+  x = ((x & mask4) << 4) | ((x >> 4) & mask4);
+  x = ((x & mask2) << 2) | ((x >> 2) & mask2);
+  x = ((x & mask1) << 1) | ((x >> 1) & mask1);
+  return x;
 }
