@@ -146,7 +146,7 @@ NOTES:
  *   Rating: 1
  */
 int signMask(void) {
-  /* shift a single 1 into the most significant bit */
+  /* 1 左移 31 位 */
   return 1 << 31;
 }
 
@@ -159,7 +159,7 @@ int signMask(void) {
  *   Rating: 2
  */
 int bitXor(int x, int y) {
-  /* x ^ y = (x | y) & ~(x & y), and x | y = ~(~x & ~y) by De Morgan */
+  /* 德摩根律：x|y = ~(~x & ~y)，再去掉同为 1 的位 */
   return ~(~x & ~y) & ~(x & y);
 }
 
@@ -172,7 +172,7 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  /* x >> 31 is all 1s for a negative x and 0 otherwise: keep -x or drop it */
+  /* 负数时 x>>31 是全 1，和 -x 相与 */
   int isNegative = x >> 31;
   return (~x + 1) & isNegative;
 }
@@ -189,7 +189,7 @@ int negativePart(int x){
  *   Rating: 4
  */
 int copyByteWithin(int x, int src, int dst) {
-  /* take byte src out, clear byte dst, then put the byte there */
+  /* 取出 src 字节，清掉 dst 字节，再填进去 */
   int srcShift = src << 3;
   int dstShift = dst << 3;
   int byte = (x >> srcShift) & 0xFF;
@@ -207,7 +207,7 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  /* arithmetic shift, then clear the top n bits that were filled with the sign */
+  /* 算术右移后把高 n 位清零 */
   int topBits = ((1 << 31) >> n) << 1;
   return (x >> n) & ~topBits;
 }
@@ -221,7 +221,7 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int swapNibblePairs(int x) {
-  /* 0x0F0F0F0F selects the low nibble of every byte */
+  /* 掩码 0x0F0F0F0F，高低 4 位各移 4 位 */
   int lowNibbles = 0x0F | (0x0F << 8);
   lowNibbles = lowNibbles | (lowNibbles << 16);
   return ((x & lowNibbles) << 4) | ((x >> 4) & lowNibbles);
@@ -237,7 +237,7 @@ int swapNibblePairs(int x) {
  *   Rating: 4
  */
 int secondLowestZeroBit(int x) {
-  /* x | (x + 1) fills the lowest 0 bit; the lowest 0 bit left is the answer */
+  /* 先把最低的 0 填上，再找最低的 0 */
   int filled = x | (x + 1);
   return ~filled & (filled + 1);
 }
@@ -252,7 +252,7 @@ int secondLowestZeroBit(int x) {
  *   Rating: 5
  */
 int oddParity(int x) {
-  /* fold with XOR until bit 0 is the XOR of all 32 bits */
+  /* 异或折半，最后看第 0 位 */
   x = x ^ (x >> 16);
   x = x ^ (x >> 8);
   x = x ^ (x >> 4);
@@ -271,7 +271,7 @@ int oddParity(int x) {
  *   Rating: 5
  */
 int rotateRightBits(int x, int n) {
-  /* logical right shift, joined with the bits that fell off moved to the top */
+  /* 逻辑右移，再把移出去的位补到高处 */
   int right = n & 31;
   int left = (~right + 1) & 31;
   int topBits = ((1 << 31) >> right) << 1;
@@ -290,7 +290,7 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-  /* add (half - 1) plus the low bit of the quotient, then drop the low n bits */
+  /* 加上 half-1 和商的最低位，再清掉低 n 位 */
   int half = (1 << n) >> 1;
   int quotientIsOdd = (x >> n) & 1;
   int biased = x + half + ~0 + quotientIsOdd;
@@ -310,7 +310,7 @@ int roundEvenPow2(int x, int n) {
  *   Rating: 5
  */
 int midpointTowardFirst(int x, int y) {
-  /* x + y = 2 * (x & y) + (x ^ y), so the floor of the midpoint needs no wide sum */
+  /* (x&y) + ((x^y)>>1) 是向下取整的中点，和为奇数且 x 较大时加 1 */
   int diffBits = x ^ y;
   int floorMid = (x & y) + (diffBits >> 1);
   int xIsAbove = (floorMid + ~x + 1) >> 31;
@@ -328,7 +328,7 @@ int midpointTowardFirst(int x, int y) {
  *   Rating: 7
  */
 int isBetweenEitherOrder(int x, int a, int b) {
-  /* x is inside when it is below exactly one endpoint, or equal to an endpoint */
+  /* x 只小于一个端点，或者等于端点 */
   int xorA = x ^ a;
   int xorB = x ^ b;
   int diffA = x + ~a + 1;
@@ -349,7 +349,7 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  /* overflow shows up as a sign change in 2x, 4x or 5x */
+  /* 2x、4x、5x 有一个变号就是溢出 */
   int times4 = x << 2;
   int times5 = times4 + x;
   int overflow = ((x ^ (x << 1)) | (x ^ times4) | (x ^ times5)) >> 31;
@@ -367,7 +367,7 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  /* each addition overflows upward (+1), downward (-1) or not at all (0) */
+  /* 两次加法各记一次溢出方向，加起来就是结果 */
   int sumXY = x + y;
   int upXY = ((~x & ~y & sumXY) >> 31) & 1;
   int downXY = (x & y & ~sumXY) >> 31;
@@ -391,8 +391,7 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
-  /* multiply the significand by 3, then divide by 2 (by 4 when the result
-     needs one more bit) with round-to-nearest-even */
+  /* 乘 3 再右移 1 位或 2 位，向偶数舍入 */
   unsigned sign = uf & 0x80000000;
   unsigned exp = (uf >> 23) & 0xFF;
   unsigned mant = uf & 0x7FFFFF;
@@ -434,8 +433,7 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Rating: 10
  */
 unsigned floatRoundEven(unsigned uf) {
-  /* below 1 the answer is 0 or 1; otherwise round the bit pattern itself to
-     a multiple of the bit that stands for 1 */
+  /* 小于 1 的单独处理，其余直接在位模式上舍入 */
   unsigned sign = uf & 0x80000000;
   unsigned magnitude = uf & 0x7FFFFFFF;
   unsigned exp = magnitude >> 23;
@@ -469,8 +467,7 @@ unsigned floatRoundEven(unsigned uf) {
  *   Rating: 10
  */
 unsigned float_i2f(int x) {
-  /* move the leading 1 to bit 31, keep the top 24 bits and round with the
-     8 bits that are dropped */
+  /* 左移到最高位为 1，留高 24 位，按丢掉的 8 位舍入 */
   unsigned sign = x & 0x80000000;
   unsigned magnitude = x;
   unsigned exp = 157;
@@ -501,7 +498,7 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  /* add neighbouring fields in parallel: 1-bit, 2-bit, 4-bit, then bytes */
+  /* 按 2 位、4 位、8 位分组求和 */
   int mask1 = 0x55 | (0x55 << 8);
   int mask2 = 0x33 | (0x33 << 8);
   int mask4 = 0x0F | (0x0F << 8);
@@ -527,7 +524,7 @@ int bitCount(int x) {
  */
 int bitReverse(int x)
 {
-  /* swap halves, then bytes, nibbles, bit pairs and single bits */
+  /* 16、8、4、2、1 位依次交换 */
   int mask16 = 0xFF | (0xFF << 8);
   int mask8 = mask16 ^ (mask16 << 8);
   int mask4 = mask8 ^ (mask8 << 4);
