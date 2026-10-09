@@ -20,11 +20,11 @@
 | Make | 4.3 |
 | Python | 3.12.13 |
 
-我的 WSL 里没有装 32 位编译支持（`gcc-multilib`），而 Makefile 默认带 `-m32`，直接 `make all` 编译不过。GitHub 上的自动评分也没有用 `-m32`，所以本地按评分配置里的参数编译：
+32 位编译支持按实验文档安装。我的默认编译器是 gcc 14，只装文档里的 `gcc-multilib` 还不够，`-m32` 链接时会找不到 32 位的 libgcc，另外装了 `gcc-14-multilib` 才能编译。之后用文档里的命令编译，得到的 `btest` 是 32 位程序：
 
 ```bash
 make clean
-make all CFLAGS='-O -Wall -fwrapv'
+make all
 ```
 
 ### 1.2 `./check_ops.py bits.c`
