@@ -391,7 +391,34 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
-  return 15;
+  /* multiply the significand by 3, then divide by 2 (by 4 when the result
+     needs one more bit) with round-to-nearest-even */
+  unsigned sign = uf & 0x80000000;
+  unsigned exp = (uf >> 23) & 0xFF;
+  unsigned mant = uf & 0x7FFFFF;
+  unsigned triple;
+  unsigned shift = 1;
+  unsigned dropped;
+  unsigned half;
+  if (exp == 0xFF)
+    return uf;
+  if (exp == 0)
+    exp = 1;
+  else
+    mant = mant | 0x800000;
+  triple = mant + (mant << 1);
+  if (triple >> 25) {
+    shift = 2;
+    exp = exp + 1;
+  }
+  mant = triple >> shift;
+  dropped = triple & ((1 << shift) - 1);
+  half = 1 << (shift - 1);
+  if (dropped > half || (dropped == half && (mant & 1)))
+    mant = mant + 1;
+  if (exp == 0xFF)
+    return sign | 0x7F800000;
+  return sign | (((exp - 1) << 23) + mant);
 }
 
 // P16
@@ -407,7 +434,28 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Rating: 10
  */
 unsigned floatRoundEven(unsigned uf) {
-  return 16;
+  /* below 1 the answer is 0 or 1; otherwise round the bit pattern itself to
+     a multiple of the bit that stands for 1 */
+  unsigned sign = uf & 0x80000000;
+  unsigned magnitude = uf & 0x7FFFFFFF;
+  unsigned exp = magnitude >> 23;
+  unsigned one;
+  unsigned fraction;
+  unsigned half;
+  if (exp >= 150)
+    return uf;
+  if (exp < 127) {
+    if (magnitude > 0x3F000000)
+      return sign | 0x3F800000;
+    return sign;
+  }
+  one = 1 << (150 - exp);
+  fraction = uf & (one - 1);
+  half = one >> 1;
+  uf = uf - fraction;
+  if (fraction > half || (fraction == half && (uf & one)))
+    uf = uf + one;
+  return uf;
 }
 
 // P17
@@ -421,7 +469,25 @@ unsigned floatRoundEven(unsigned uf) {
  *   Rating: 10
  */
 unsigned float_i2f(int x) {
-  return 17;
+  /* move the leading 1 to bit 31, keep the top 24 bits and round with the
+     8 bits that are dropped */
+  unsigned sign = x & 0x80000000;
+  unsigned magnitude = x;
+  unsigned exp = 157;
+  unsigned dropped;
+  if (x == 0)
+    return 0;
+  if (sign)
+    magnitude = -magnitude;
+  while (!(magnitude & 0x80000000)) {
+    magnitude = magnitude << 1;
+    exp = exp - 1;
+  }
+  dropped = magnitude & 0xFF;
+  magnitude = magnitude >> 8;
+  if (dropped > 0x80 || (dropped == 0x80 && (magnitude & 1)))
+    magnitude = magnitude + 1;
+  return sign | ((exp << 23) + magnitude);
 }
 
 
